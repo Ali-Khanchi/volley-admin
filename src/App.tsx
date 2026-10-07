@@ -1,18 +1,43 @@
 import { useState } from 'react'
 import { LoginGate, SignOutButton } from './components/LoginGate'
 import { PlayerForm } from './components/PlayerForm'
+import { PlayerList } from './components/PlayerList'
 import { EventForm } from './components/EventForm'
-import { TeamForm } from './components/TeamForm'
-import { TeamMembershipForm } from './components/TeamMembershipForm'
+import { EventList } from './components/EventList'
+import { TeamsPage } from './components/TeamsPage'
 import { MatchForm } from './components/MatchForm'
+import { MatchList } from './components/MatchList'
 import { useReferenceData } from './lib/useReferenceData'
+import { useTeamsWithRoster } from './lib/useTeamsWithRoster'
+import { useMatchesWithDetails } from './lib/useMatchesWithDetails'
 
-const TABS = ['Players', 'Events', 'Teams', 'Rosters', 'Matches'] as const
+const TABS = ['Players', 'Events', 'Teams', 'Matches'] as const
 type Tab = (typeof TABS)[number]
 
 function AdminApp() {
   const [tab, setTab] = useState<Tab>('Players')
   const { players, events, teams, loading, error, refresh } = useReferenceData()
+  const {
+    teams: teamsWithRoster,
+    loading: teamsLoading,
+    error: teamsError,
+    refresh: refreshTeams,
+  } = useTeamsWithRoster()
+  const {
+    matches,
+    loading: matchesLoading,
+    error: matchesError,
+    refresh: refreshMatches,
+  } = useMatchesWithDetails()
+
+  // Any mutation anywhere can affect dropdowns elsewhere (e.g. a new player
+  // should show up in the roster add-dropdown immediately), so refresh everything.
+  async function refreshAll() {
+    await Promise.all([refresh(), refreshTeams(), refreshMatches()])
+  }
+
+  const anyLoading = loading || teamsLoading || matchesLoading
+  const anyError = error ?? teamsError ?? matchesError
 
   return (
     <div className="mx-auto min-h-full max-w-3xl px-4 py-10">
@@ -32,9 +57,7 @@ function AdminApp() {
             key={t}
             onClick={() => setTab(t)}
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
-              tab === t
-                ? 'bg-volt text-court-950'
-                : 'bg-court-900 text-slate-300 hover:bg-court-800'
+              tab === t ? 'bg-volt text-court-950' : 'bg-court-900 text-slate-300 hover:bg-court-800'
             }`}
           >
             {t}
@@ -42,24 +65,38 @@ function AdminApp() {
         ))}
       </nav>
 
-      {error && (
+      {anyError && (
         <p className="mb-6 rounded-md border border-clay/40 bg-clay/10 px-4 py-2 text-sm text-clay">
-          Couldn't load dropdown data: {error}
+          Couldn't load data: {anyError}
         </p>
       )}
 
-      {loading ? (
+      {anyLoading ? (
         <p className="text-sm text-slate-500">Loading…</p>
       ) : (
-        <>
-          {tab === 'Players' && <PlayerForm onSaved={refresh} />}
-          {tab === 'Events' && <EventForm onSaved={refresh} />}
-          {tab === 'Teams' && <TeamForm players={players} events={events} onSaved={refresh} />}
-          {tab === 'Rosters' && (
-            <TeamMembershipForm players={players} teams={teams} onSaved={refresh} />
+        <div className="space-y-8">
+          {tab === 'Players' && (
+            <>
+              <PlayerForm onSaved={refreshAll} />
+              <PlayerList players={players} onChanged={refreshAll} />
+            </>
           )}
-          {tab === 'Matches' && <MatchForm events={events} teams={teams} onSaved={refresh} />}
-        </>
+          {tab === 'Events' && (
+            <>
+              <EventForm onSaved={refreshAll} />
+              <EventList events={events} onChanged={refreshAll} />
+            </>
+          )}
+          {tab === 'Teams' && (
+            <TeamsPage teams={teamsWithRoster} players={players} events={events} onChanged={refreshAll} />
+          )}
+          {tab === 'Matches' && (
+            <>
+              <MatchForm events={events} teams={teams} onSaved={refreshAll} />
+              <MatchList matches={matches} teams={teams} onChanged={refreshAll} />
+            </>
+          )}
+        </div>
       )}
     </div>
   )

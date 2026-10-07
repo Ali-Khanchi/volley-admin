@@ -3,6 +3,9 @@ export interface Player {
   name: string | null
 }
 
+export const EVENT_TYPES = ['1v1', 'round_robin', 'tournament'] as const
+export type EventType = (typeof EVENT_TYPES)[number]
+
 export interface EventRow {
   id: number
   name: string | null
@@ -36,5 +39,39 @@ export interface Match {
   refs: string | null
   start_time: string | null // "HH:MM"
   event_id: number | null
+  stage: MatchStage
+}
+
+// --- Joined shapes used by the list views ---
+
+export interface TeamMember {
+  membership_id: number
+  player_id: number
+  player_name: string | null
+}
+
+export interface TeamWithRoster {
+  id: number
+  name: string | null
+  captain_id: number | null
+  captain_name: string | null
+  event_id: number | null
+  event_name: string | null
+  members: TeamMember[]
+}
+
+export interface MatchWithDetails {
+  id: number
+  match_order: number | null
+  team0: number | null
+  team1: number | null
+  team0_name: string | null
+  team1_name: string | null
+  score0: number | null
+  score1: number | null
+  refs: string | null
+  start_time: string | null
+  event_id: number | null
+  event_name: string | null
   stage: MatchStage
 }

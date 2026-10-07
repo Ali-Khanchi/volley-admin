@@ -17,4 +17,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
   },
+  // All the app's tables live in the `volleyball` schema, not `public`.
+  // This must also be added under Project Settings -> API -> "Exposed schemas"
+  // in the Supabase dashboard, or PostgREST will still 404 on these tables.
+  db: {
+    schema: 'volleyball',
+  },
 })
