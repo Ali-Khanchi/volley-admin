@@ -1,42 +1,43 @@
-import { useState } from 'react'
-import { LoginGate, SignOutButton } from './components/LoginGate'
-import { PlayerForm } from './components/PlayerForm'
-import { PlayerList } from './components/PlayerList'
-import { EventForm } from './components/EventForm'
-import { EventList } from './components/EventList'
-import { TeamsPage } from './components/TeamsPage'
-import { MatchForm } from './components/MatchForm'
-import { MatchList } from './components/MatchList'
-import { useReferenceData } from './lib/useReferenceData'
-import { useTeamsWithRoster } from './lib/useTeamsWithRoster'
-import { useMatchesWithDetails } from './lib/useMatchesWithDetails'
-import type { MatchDraft, MatchWithDetails } from './lib/types'
+import { useState } from 'react';
+import { LoginGate, SignOutButton } from './components/LoginGate';
+import { PlayerForm } from './components/PlayerForm';
+import { PlayerList } from './components/PlayerList';
+import { EventForm } from './components/EventForm';
+import { EventList } from './components/EventList';
+import { TeamsPage } from './components/TeamsPage';
+import { MatchForm } from './components/MatchForm';
+import { MatchList } from './components/MatchList';
+import { useReferenceData } from './lib/useReferenceData';
+import { useTeamsWithRoster } from './lib/useTeamsWithRoster';
+import { useMatchesWithDetails } from './lib/useMatchesWithDetails';
+import type { MatchDraft, MatchWithDetails } from './lib/types';
 
-const TABS = ['Players', 'Events', 'Teams', 'Matches'] as const
-type Tab = (typeof TABS)[number]
+const TABS = ['Players', 'Events', 'Teams', 'Matches'] as const;
+type Tab = (typeof TABS)[number];
 
 function AdminApp() {
-  const [tab, setTab] = useState<Tab>('Players')
-  const [matchDraft, setMatchDraft] = useState<MatchDraft | null>(null)
-  const [matchDraftKey, setMatchDraftKey] = useState(0)
-  const { players, events, teams, loading, error, refresh } = useReferenceData()
+  const [tab, setTab] = useState<Tab>('Players');
+  const [matchDraft, setMatchDraft] = useState<MatchDraft | null>(null);
+  const [matchDraftKey, setMatchDraftKey] = useState(0);
+  const { players, events, teams, loading, error, refresh } =
+    useReferenceData();
   const {
     teams: teamsWithRoster,
     loading: teamsLoading,
     error: teamsError,
-    refresh: refreshTeams,
-  } = useTeamsWithRoster()
+    refresh: refreshTeams
+  } = useTeamsWithRoster();
   const {
     matches,
     loading: matchesLoading,
     error: matchesError,
-    refresh: refreshMatches,
-  } = useMatchesWithDetails()
+    refresh: refreshMatches
+  } = useMatchesWithDetails();
 
   // Any mutation anywhere can affect dropdowns elsewhere (e.g. a new player
   // should show up in the roster add-dropdown immediately), so refresh everything.
   async function refreshAll() {
-    await Promise.all([refresh(), refreshTeams(), refreshMatches()])
+    await Promise.all([refresh(), refreshTeams(), refreshMatches()]);
   }
 
   // Fill the add-match form with a copy of an existing match (match order + 1).
@@ -49,14 +50,18 @@ function AdminApp() {
       stage: match.stage,
       startTime: match.start_time ?? '',
       refs: match.refs ?? '',
-      matchOrder: match.match_order != null ? String(match.match_order + 1) : '',
-    })
-    setMatchDraftKey((k) => k + 1)
-    document.getElementById('match-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      matchOrder:
+        match.match_order != null ? String(match.match_order + 1) : '',
+      isFriendly: match.isFriendly
+    });
+    setMatchDraftKey((k) => k + 1);
+    document
+      .getElementById('match-form')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  const anyLoading = loading || teamsLoading || matchesLoading
-  const anyError = error ?? teamsError ?? matchesError
+  const anyLoading = loading || teamsLoading || matchesLoading;
+  const anyError = error ?? teamsError ?? matchesError;
 
   return (
     <div className="mx-auto min-h-full max-w-3xl px-4 py-10">
@@ -65,7 +70,9 @@ function AdminApp() {
           <h1 className="font-display text-3xl font-semibold tracking-tight text-slate-50">
             Volleyball League Admin
           </h1>
-          <p className="mt-1 text-sm text-slate-400">Add players, events, teams, rosters and matches.</p>
+          <p className="mt-1 text-sm text-slate-400">
+            Add players, events, teams, rosters and matches.
+          </p>
         </div>
         <SignOutButton />
       </header>
@@ -76,7 +83,9 @@ function AdminApp() {
             key={t}
             onClick={() => setTab(t)}
             className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
-              tab === t ? 'bg-volt text-court-950' : 'bg-court-900 text-slate-300 hover:bg-court-800'
+              tab === t
+                ? 'bg-volt text-court-950'
+                : 'bg-court-900 text-slate-300 hover:bg-court-800'
             }`}
           >
             {t}
@@ -107,7 +116,12 @@ function AdminApp() {
             </>
           )}
           {tab === 'Teams' && (
-            <TeamsPage teams={teamsWithRoster} players={players} events={events} onChanged={refreshAll} />
+            <TeamsPage
+              teams={teamsWithRoster}
+              players={players}
+              events={events}
+              onChanged={refreshAll}
+            />
           )}
           {tab === 'Matches' && (
             <>
@@ -129,7 +143,7 @@ function AdminApp() {
         </div>
       )}
     </div>
-  )
+  );
 }
 
 export default function App() {
@@ -137,5 +151,5 @@ export default function App() {
     <LoginGate>
       <AdminApp />
     </LoginGate>
-  )
+  );
 }

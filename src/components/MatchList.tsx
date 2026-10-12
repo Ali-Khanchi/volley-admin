@@ -1,78 +1,105 @@
-import { useMemo, useState } from 'react'
-import { supabase } from '../lib/supabaseClient'
-import { Card, inputClass } from './FormAtoms'
-import { MATCH_STAGES, type MatchStage, type MatchWithDetails, type Team } from '../lib/types'
+import { useMemo, useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import { Card, inputClass } from './FormAtoms';
+import {
+  MATCH_STAGES,
+  type MatchStage,
+  type MatchWithDetails,
+  type Team
+} from '../lib/types';
 
-const NO_EVENT_GROUP = '__no_event__'
+const NO_EVENT_GROUP = '__no_event__';
 
 export function MatchList({
   matches,
   teams,
   onChanged,
-  onDuplicate,
+  onDuplicate
 }: {
-  matches: MatchWithDetails[]
-  teams: Team[]
-  onChanged: () => void
-  onDuplicate: (match: MatchWithDetails) => void
+  matches: MatchWithDetails[];
+  teams: Team[];
+  onChanged: () => void;
+  onDuplicate: (match: MatchWithDetails) => void;
 }) {
   const groups = useMemo(() => {
-    const map = new Map<string, { label: string; matches: MatchWithDetails[] }>()
+    const map = new Map<
+      string,
+      { label: string; matches: MatchWithDetails[] }
+    >();
     for (const m of matches) {
-      const key = m.event_id != null ? String(m.event_id) : NO_EVENT_GROUP
-      const label = m.event_id != null ? m.event_name ?? `Event #${m.event_id}` : 'No event'
-      if (!map.has(key)) map.set(key, { label, matches: [] })
-      map.get(key)!.matches.push(m)
+      const key = m.event_id != null ? String(m.event_id) : NO_EVENT_GROUP;
+      const label =
+        m.event_id != null
+          ? (m.event_name ?? `Event #${m.event_id}`)
+          : 'No event';
+      if (!map.has(key)) map.set(key, { label, matches: [] });
+      map.get(key)!.matches.push(m);
     }
     return [...map.entries()]
       .sort(([a], [b]) => {
-        if (a === NO_EVENT_GROUP) return 1
-        if (b === NO_EVENT_GROUP) return -1
-        return 0
+        if (a === NO_EVENT_GROUP) return 1;
+        if (b === NO_EVENT_GROUP) return -1;
+        return 0;
       })
-      .map(([, g]) => g)
-  }, [matches])
+      .map(([, g]) => g);
+  }, [matches]);
 
   return (
-    <Card title="All matches" description={`${matches.length} match${matches.length === 1 ? '' : 'es'}, grouped by event`}>
+    <Card
+      title="All matches"
+      description={`${matches.length} match${matches.length === 1 ? '' : 'es'}, grouped by event`}
+    >
       <div className="max-h-[32rem] space-y-6 overflow-y-auto pr-1">
-        {groups.length === 0 && <p className="text-sm text-slate-500">No matches yet.</p>}
+        {groups.length === 0 && (
+          <p className="text-sm text-slate-500">No matches yet.</p>
+        )}
         {groups.map((group) => (
           <div key={group.label}>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{group.label}</h3>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {group.label}
+            </h3>
             <div className="space-y-3">
               {group.matches.map((m) => (
-                <MatchRow key={m.id} match={m} teams={teams} onChanged={onChanged} onDuplicate={onDuplicate} />
+                <MatchRow
+                  key={m.id}
+                  match={m}
+                  teams={teams}
+                  onChanged={onChanged}
+                  onDuplicate={onDuplicate}
+                />
               ))}
             </div>
           </div>
         ))}
       </div>
     </Card>
-  )
+  );
 }
 
 function MatchRow({
   match,
   teams,
   onChanged,
-  onDuplicate,
+  onDuplicate
 }: {
-  match: MatchWithDetails
-  teams: Team[]
-  onChanged: () => void
-  onDuplicate: (match: MatchWithDetails) => void
+  match: MatchWithDetails;
+  teams: Team[];
+  onChanged: () => void;
+  onDuplicate: (match: MatchWithDetails) => void;
 }) {
-  const [editing, setEditing] = useState(false)
-  const [team0, setTeam0] = useState(match.team0?.toString() ?? '')
-  const [team1, setTeam1] = useState(match.team1?.toString() ?? '')
-  const [score0, setScore0] = useState(match.score0?.toString() ?? '')
-  const [score1, setScore1] = useState(match.score1?.toString() ?? '')
-  const [stage, setStage] = useState<MatchStage>(match.stage)
-  const [startTime, setStartTime] = useState(match.start_time ?? '')
-  const [matchOrder, setMatchOrder] = useState(match.match_order?.toString() ?? '')
-  const [refs, setRefs] = useState(match.refs ?? '')
-  const [error, setError] = useState<string | null>(null)
+  const [editing, setEditing] = useState(false);
+  const [team0, setTeam0] = useState(match.team0?.toString() ?? '');
+  const [team1, setTeam1] = useState(match.team1?.toString() ?? '');
+  const [score0, setScore0] = useState(match.score0?.toString() ?? '');
+  const [score1, setScore1] = useState(match.score1?.toString() ?? '');
+  const [stage, setStage] = useState<MatchStage>(match.stage);
+  const [startTime, setStartTime] = useState(match.start_time ?? '');
+  const [matchOrder, setMatchOrder] = useState(
+    match.match_order?.toString() ?? ''
+  );
+  const [refs, setRefs] = useState(match.refs ?? '');
+  const [isFriendly, setIsFriendly] = useState(match.isFriendly ?? false);
+  const [error, setError] = useState<string | null>(null);
 
   async function save() {
     const { error } = await supabase
@@ -86,20 +113,24 @@ function MatchRow({
         start_time: startTime || null,
         match_order: matchOrder === '' ? null : Number(matchOrder),
         refs: refs.trim() || null,
+        isFriendly
       })
-      .eq('id', match.id)
-    if (error) setError(error.message)
+      .eq('id', match.id);
+    if (error) setError(error.message);
     else {
-      setEditing(false)
-      onChanged()
+      setEditing(false);
+      onChanged();
     }
   }
 
   async function remove() {
-    if (!confirm('Delete this match?')) return
-    const { error } = await supabase.from('matches').delete().eq('id', match.id)
-    if (error) setError(error.message)
-    else onChanged()
+    if (!confirm('Delete this match?')) return;
+    const { error } = await supabase
+      .from('matches')
+      .delete()
+      .eq('id', match.id);
+    if (error) setError(error.message);
+    else onChanged();
   }
 
   return (
@@ -108,7 +139,11 @@ function MatchRow({
       {editing ? (
         <div className="space-y-2">
           <div className="grid grid-cols-2 gap-2">
-            <select value={team0} onChange={(e) => setTeam0(e.target.value)} className={inputClass}>
+            <select
+              value={team0}
+              onChange={(e) => setTeam0(e.target.value)}
+              className={inputClass}
+            >
               <option value="">— none —</option>
               {teams.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -116,7 +151,11 @@ function MatchRow({
                 </option>
               ))}
             </select>
-            <select value={team1} onChange={(e) => setTeam1(e.target.value)} className={inputClass}>
+            <select
+              value={team1}
+              onChange={(e) => setTeam1(e.target.value)}
+              className={inputClass}
+            >
               <option value="">— none —</option>
               {teams.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -126,10 +165,26 @@ function MatchRow({
             </select>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <input type="number" value={score0} onChange={(e) => setScore0(e.target.value)} className={inputClass} placeholder="Score 0" />
-            <input type="number" value={score1} onChange={(e) => setScore1(e.target.value)} className={inputClass} placeholder="Score 1" />
+            <input
+              type="number"
+              value={score0}
+              onChange={(e) => setScore0(e.target.value)}
+              className={inputClass}
+              placeholder="Score 0"
+            />
+            <input
+              type="number"
+              value={score1}
+              onChange={(e) => setScore1(e.target.value)}
+              className={inputClass}
+              placeholder="Score 1"
+            />
           </div>
-          <select value={stage} onChange={(e) => setStage(e.target.value as MatchStage)} className={inputClass}>
+          <select
+            value={stage}
+            onChange={(e) => setStage(e.target.value as MatchStage)}
+            className={inputClass}
+          >
             {MATCH_STAGES.map((s) => (
               <option key={s} value={s}>
                 {s.replace('_', ' ')}
@@ -137,15 +192,48 @@ function MatchRow({
             ))}
           </select>
           <div className="grid grid-cols-2 gap-2">
-            <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className={inputClass} />
-            <input type="number" value={matchOrder} onChange={(e) => setMatchOrder(e.target.value)} className={inputClass} placeholder="Order" />
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className={inputClass}
+            />
+            <input
+              type="number"
+              value={matchOrder}
+              onChange={(e) => setMatchOrder(e.target.value)}
+              className={inputClass}
+              placeholder="Order"
+            />
           </div>
-          <input value={refs} onChange={(e) => setRefs(e.target.value)} className={inputClass} placeholder="Refs" />
+          <div className="grid grid-cols-[4fr_1fr] gap-10 items-center">
+            <input
+              value={refs}
+              onChange={(e) => setRefs(e.target.value)}
+              className={inputClass}
+              placeholder="Refs"
+            />
+            <label>
+              {'Friendly? '}
+              <input
+                type="checkbox"
+                checked={isFriendly}
+                onChange={(e) => setIsFriendly(e.target.checked)}
+                className={'ml-2'}
+              />
+            </label>
+          </div>
           <div className="flex gap-3 pt-1">
-            <button onClick={save} className="text-sm font-medium text-volt hover:brightness-95">
+            <button
+              onClick={save}
+              className="text-sm font-medium text-volt hover:brightness-95"
+            >
               Save
             </button>
-            <button onClick={() => setEditing(false)} className="text-sm text-slate-400 hover:text-slate-200">
+            <button
+              onClick={() => setEditing(false)}
+              className="text-sm text-slate-400 hover:text-slate-200"
+            >
               Cancel
             </button>
           </div>
@@ -157,15 +245,23 @@ function MatchRow({
               {match.team0_name ?? '—'} vs {match.team1_name ?? '—'}
             </span>
             <span className="ml-2 text-slate-500">
-              {match.score0 ?? '-'}:{match.score1 ?? '-'} · {match.stage.replace('_', ' ')}
+              {match.score0 ?? '-'}:{match.score1 ?? '-'} ·{' '}
+              {match.stage.replace('_', ' ')}
               {match.start_time ? ` · ${match.start_time}` : ''}
+              {match.isFriendly ? ' · Friendly' : ''}
             </span>
           </div>
           <div className="flex shrink-0 items-center gap-3">
-            <button onClick={() => setEditing(true)} className="text-sm text-slate-400 hover:text-slate-200">
+            <button
+              onClick={() => setEditing(true)}
+              className="text-sm text-slate-400 hover:text-slate-200"
+            >
               Edit
             </button>
-            <button onClick={remove} className="text-sm text-clay hover:brightness-110">
+            <button
+              onClick={remove}
+              className="text-sm text-clay hover:brightness-110"
+            >
               Delete
             </button>
             <button
@@ -188,5 +284,5 @@ function MatchRow({
         </div>
       )}
     </div>
-  )
+  );
 }
