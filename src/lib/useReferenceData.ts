@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from './supabaseClient'
 import type { EventRow, Player, Team } from './types'
 
@@ -12,9 +12,12 @@ export function useReferenceData() {
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const hasLoadedOnce = useRef(false)
 
   const refresh = useCallback(async () => {
-    setLoading(true)
+    // Only block the UI with "Loading…" before the first load; later refreshes
+    // (after add/edit/delete) run quietly so scroll position is preserved.
+    if (!hasLoadedOnce.current) setLoading(true)
     setError(null)
     const [playersRes, eventsRes, teamsRes] = await Promise.all([
       supabase.from('players').select('id,name').order('name', { ascending: true }),
@@ -30,6 +33,7 @@ export function useReferenceData() {
       setEvents(eventsRes.data ?? [])
       setTeams(teamsRes.data ?? [])
     }
+    hasLoadedOnce.current = true
     setLoading(false)
   }, [])
 

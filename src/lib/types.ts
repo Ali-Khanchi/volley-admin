@@ -60,6 +60,18 @@ export interface TeamWithRoster {
   members: TeamMember[]
 }
 
+// A match's editable fields in the shape MatchForm's inputs use (all strings),
+// used to pre-fill the add-match form from an existing match.
+export interface MatchDraft {
+  eventId: string
+  team0: string
+  team1: string
+  stage: MatchStage
+  startTime: string
+  refs: string
+  matchOrder: string
+}
+
 export interface MatchWithDetails {
   id: number
   match_order: number | null

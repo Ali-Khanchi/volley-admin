@@ -1,16 +1,22 @@
-import { FormEvent, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { Card, FieldLabel, inputClass, StatusMessage, SubmitButton } from './FormAtoms'
-import { MATCH_STAGES, type EventRow, type Team } from '../lib/types'
+import { MATCH_STAGES, type EventRow, type MatchDraft, type Team } from '../lib/types'
 
 export function MatchForm({
   events,
   teams,
   onSaved,
+  prefill,
+  prefillKey,
 }: {
   events: EventRow[]
   teams: Team[]
   onSaved: () => void
+  // Set by the match list's "duplicate as next match" button. When prefillKey
+  // changes, fields are overwritten from `prefill` (nothing is submitted).
+  prefill?: MatchDraft | null
+  prefillKey?: number
 }) {
   const [eventId, setEventId] = useState('')
   const [team0, setTeam0] = useState('')
@@ -23,6 +29,22 @@ export function MatchForm({
   const [matchOrder, setMatchOrder] = useState('')
   const [pending, setPending] = useState(false)
   const [status, setStatus] = useState<{ kind: 'success' | 'error'; text: string } | null>(null)
+
+  useEffect(() => {
+    if (!prefill) return
+    setEventId(prefill.eventId)
+    setTeam0(prefill.team0)
+    setTeam1(prefill.team1)
+    setStage(prefill.stage)
+    setStartTime(prefill.startTime)
+    setRefs(prefill.refs)
+    setMatchOrder(prefill.matchOrder)
+    setScore0('')
+    setScore1('')
+    setStatus(null)
+    // Keyed only on prefillKey so every "duplicate" click re-applies the draft.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillKey])
 
   // If an event is picked, narrow the team dropdowns to that event's teams.
   const teamOptions = useMemo(() => {
@@ -66,6 +88,7 @@ export function MatchForm({
   }
 
   return (
+    <div id="match-form">
     <Card title="Add match" description="Scores and results can be left blank and filled in later.">
       <form onSubmit={handleSubmit} className="max-w-sm space-y-4">
         <label>
@@ -176,5 +199,6 @@ export function MatchForm({
         <StatusMessage status={status} />
       </form>
     </Card>
+    </div>
   )
 }

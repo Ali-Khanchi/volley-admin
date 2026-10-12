@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from './supabaseClient'
 import type { TeamWithRoster } from './types'
 
@@ -16,9 +16,12 @@ export function useTeamsWithRoster() {
   const [teams, setTeams] = useState<TeamWithRoster[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const hasLoadedOnce = useRef(false)
 
   const refresh = useCallback(async () => {
-    setLoading(true)
+    // Only block the UI with "Loading…" before the first load; later refreshes
+    // (after add/edit/delete) run quietly so scroll position is preserved.
+    if (!hasLoadedOnce.current) setLoading(true)
     setError(null)
     const { data, error } = await supabase
       .from('teams')
@@ -50,6 +53,7 @@ export function useTeamsWithRoster() {
         })),
       )
     }
+    hasLoadedOnce.current = true
     setLoading(false)
   }, [])
 

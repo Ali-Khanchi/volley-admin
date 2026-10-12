@@ -10,12 +10,15 @@ import { MatchList } from './components/MatchList'
 import { useReferenceData } from './lib/useReferenceData'
 import { useTeamsWithRoster } from './lib/useTeamsWithRoster'
 import { useMatchesWithDetails } from './lib/useMatchesWithDetails'
+import type { MatchDraft, MatchWithDetails } from './lib/types'
 
 const TABS = ['Players', 'Events', 'Teams', 'Matches'] as const
 type Tab = (typeof TABS)[number]
 
 function AdminApp() {
   const [tab, setTab] = useState<Tab>('Players')
+  const [matchDraft, setMatchDraft] = useState<MatchDraft | null>(null)
+  const [matchDraftKey, setMatchDraftKey] = useState(0)
   const { players, events, teams, loading, error, refresh } = useReferenceData()
   const {
     teams: teamsWithRoster,
@@ -34,6 +37,22 @@ function AdminApp() {
   // should show up in the roster add-dropdown immediately), so refresh everything.
   async function refreshAll() {
     await Promise.all([refresh(), refreshTeams(), refreshMatches()])
+  }
+
+  // Fill the add-match form with a copy of an existing match (match order + 1).
+  // Nothing is submitted; the person reviews the draft and saves it themselves.
+  function handleDuplicateMatch(match: MatchWithDetails) {
+    setMatchDraft({
+      eventId: match.event_id?.toString() ?? '',
+      team0: match.team0?.toString() ?? '',
+      team1: match.team1?.toString() ?? '',
+      stage: match.stage,
+      startTime: match.start_time ?? '',
+      refs: match.refs ?? '',
+      matchOrder: match.match_order != null ? String(match.match_order + 1) : '',
+    })
+    setMatchDraftKey((k) => k + 1)
+    document.getElementById('match-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const anyLoading = loading || teamsLoading || matchesLoading
@@ -92,8 +111,19 @@ function AdminApp() {
           )}
           {tab === 'Matches' && (
             <>
-              <MatchForm events={events} teams={teams} onSaved={refreshAll} />
-              <MatchList matches={matches} teams={teams} onChanged={refreshAll} />
+              <MatchForm
+                events={events}
+                teams={teams}
+                onSaved={refreshAll}
+                prefill={matchDraft}
+                prefillKey={matchDraftKey}
+              />
+              <MatchList
+                matches={matches}
+                teams={teams}
+                onChanged={refreshAll}
+                onDuplicate={handleDuplicateMatch}
+              />
             </>
           )}
         </div>
